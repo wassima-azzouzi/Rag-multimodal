@@ -2,8 +2,4 @@
 .env
 __pycache__/
 *.pyc
-chroma/
-*.PNG
-*.png
-*.jpg
-*.jpeg
+chroma_db_multimodal/

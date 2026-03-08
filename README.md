@@ -1,70 +1,151 @@
-# RAG Multimodal – Application Streamlit
+# VaultAI Multimodal — RAG Intelligent pour PDFs & Images
 
-Ce projet est une application **RAG (Retrieval-Augmented Generation)** simple qui permet
-d'uploader vos documents (PDF, TXT, DOCX/PPTX convertis en texte brut) et de poser des
-questions dessus via une interface type chat.
+Assistant RAG multimodal de nouvelle génération qui permet d'interroger simultanément vos **documents PDF** et vos **images** via une interface Premium.
 
-## 1. Installation
+**Pipeline** : Les PDFs sont découpés et vectorisés ; les images sont analysées par **LLaMA 3.2 Vision** et leurs descriptions sont indexées dans le même espace vectoriel. L'IA répond en s'appuyant strictement sur vos sources.
 
-```bash
-git clone <ce_projet> rag_multimodal_app
-cd rag_multimodal_app
+![Status](https://img.shields.io/badge/Status-Stable-success)
+![Python](https://img.shields.io/badge/Python-3.9+-blue)
+![Streamlit](https://img.shields.io/badge/Frontend-Streamlit-FF4B4B)
+![LLM](https://img.shields.io/badge/LLM-Llama--3.1%20%2B%20Llama--3.2--Vision-orange)
 
-# Créer un environnement virtuel (optionnel mais recommandé)
-python -m venv .venv
-source .venv/bin/activate  # sous Windows: .venv\Scripts\activate
+## Fonctionnalités
 
-# Installer les dépendances
-pip install -r requirements.txt
+- **Multimodal** : Indexation simultanée de PDFs (texte) et d'images (via Vision IA).
+- **LLaMA 3.2 Vision** : Analyse automatique des images avec description détaillée.
+- **Persistance** : Stockage vectoriel local via ChromaDB (`./chroma_db_multimodal`).
+- **Interface Premium** : Design Glassmorphism avec bulles de chat animées.
+- **Réglages IA** : Température, Top-K et paramètres de chunking ajustables.
+- **Sources Citées** : Chaque réponse indique les documents/images consultés.
+
+## Schéma Global du Pipeline
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│                    ENTRÉES UTILISATEUR                        │
+│                                                              │
+│   📄 PDF              🖼️ Image (PNG/JPG)                     │
+│     │                      │                                 │
+│     ▼                      ▼                                 │
+│  PyPDF2              LLaMA 3.2 Vision                        │
+│  (Extraction          (Description                           │
+│   de texte)            automatique)                          │
+│     │                      │                                 │
+│     ▼                      ▼                                 │
+│  ┌─────────────────────────────────────┐                     │
+│  │         TEXTE UNIFIÉ                │                     │
+│  │  (texte PDF + descriptions images)  │                     │
+│  └─────────────────────────────────────┘                     │
+│                    │                                         │
+│                    ▼                                         │
+│           ┌────────────────┐                                 │
+│           │   CHUNKING     │                                 │
+│           │  (Découpage)   │                                 │
+│           └────────────────┘                                 │
+│                    │                                         │
+│                    ▼                                         │
+│         ┌──────────────────┐                                 │
+│         │   EMBEDDINGS     │                                 │
+│         │ all-MiniLM-L6-v2 │                                 │
+│         │ (384 dimensions) │                                 │
+│         └──────────────────┘                                 │
+│                    │                                         │
+│                    ▼                                         │
+│          ┌─────────────────┐                                 │
+│          │   CHROMADB      │                                 │
+│          │  (Stockage      │                                 │
+│          │   Vectoriel     │                                 │
+│          │   Persistant)   │                                 │
+│          └─────────────────┘                                 │
+│                    │                                         │
+│         Question utilisateur                                 │
+│                    │                                         │
+│                    ▼                                         │
+│          ┌─────────────────┐                                 │
+│          │  RETRIEVAL      │                                 │
+│          │  (Recherche de  │                                 │
+│          │   similarité    │                                 │
+│          │   cosinus)      │                                 │
+│          └─────────────────┘                                 │
+│                    │                                         │
+│                    ▼                                         │
+│          ┌─────────────────┐                                 │
+│          │  LLaMA 3.1 8B   │                                 │
+│          │  (Génération    │                                 │
+│          │   de réponse)   │                                 │
+│          └─────────────────┘                                 │
+│                    │                                         │
+│                    ▼                                         │
+│             💬 RÉPONSE                                       │
+│          (avec sources citées)                               │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-## 2. Configuration de la clé GROQ
+## Stack Technique
 
-Créer un fichier `.env` à la racine du projet :
+| Composant | Technologie |
+|-----------|-------------|
+| **Frontend** | Streamlit |
+| **Vector DB** | ChromaDB (persistant) |
+| **LLM Texte** | LLaMA 3.1 8B (via Groq) |
+| **LLM Vision** | LLaMA 3.2 11B Vision (via Groq) |
+| **Embeddings** | `all-MiniLM-L6-v2` (Sentence Transformers) |
+| **Parsing PDF** | PyPDF2 |
 
-```bash
-cp .env.example .env
-```
+## Installation
 
-Éditer le fichier `.env` et ajouter votre clé :
+1. **Cloner le projet** :
+   ```bash
+   git clone https://github.com/wassima-azzouzi/rag_multimodal.git
+   cd rag_multimodal
+   ```
 
-```env
-GROQ_API_KEY=your_groq_api_key_here
-```
+2. **Créer un environnement virtuel** :
+   ```bash
+   python -m venv .venv
+   .venv\Scripts\activate  # Windows
+   ```
 
-Vous pouvez obtenir une clé sur le site de Groq.
+3. **Installer les dépendances** :
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-## 3. Lancer l'application
+4. **Configuration** :
+   Créez un fichier `.env` à la racine :
+   ```env
+   GROQ_API_KEY=votre_cle_groq
+   ```
 
+## Lancement
 ```bash
 streamlit run app.py
 ```
 
-## 4. Utilisation
+## Utilisation
+1. Chargez vos fichiers **PDF** et/ou **images** (PNG, JPG) dans la barre latérale.
+2. Réglez les paramètres de chunking et d'IA si besoin.
+3. Cliquez sur **Indexer** pour construire la base multimodale.
+4. Posez vos questions — l'IA consultera textes ET descriptions d'images !
 
-1. Ouvrez l'URL locale indiquée par Streamlit (en général http://localhost:8501).
-2. Dans la barre latérale :
-   - Uploadez vos documents (PDF, TXT, etc.).
-   - Ajustez la taille des chunks et le chevauchement si besoin.
-   - Cliquez sur **"Construire la base RAG"**.
-3. Dans la zone de chat en bas, posez vos questions sur le contenu des documents.
-4. L'assistant répondra en se basant **uniquement** sur les documents indexés et affichera
-   en plus les passages utilisés comme contexte.
+## Dépannage (Troubleshooting)
 
-## 5. Multimodalité ?
+### Erreur API Groq : `Error code: 401 - Invalid API Key`
+Cette erreur signifie que la clé API dans votre fichier `.env` est invalide, expirée, ou que Windows garde en mémoire une ancienne clé.
 
-Ici, "multimodal" signifie principalement **multi-formats de documents texte**
-(PDF, TXT, DOCX, PPTX, etc.).  
-Pour ajouter le support d'images (questions sur des figures, captures, etc.), vous pouvez
-étendre l'application en :
+**Solutions :**
 
-- ajoutant un modèle de vision (CLIP, vision encoder, etc.),
-- extrayant des features d'images,
-- et en les stockant dans la même base vectorielle ou dans une base séparée.
-
-Cela dépasse le cadre du squelette de base fourni, mais l'architecture est prête à être
-étendue.
-
----
-
-Projet prêt à être modifié et adapté à vos besoins pédagogiques ou de projet.
+1. **Générez une nouvelle clé** depuis la [Console Groq](https://console.groq.com/keys) et mettez-la dans le fichier `.env`.
+   
+2. **Si l'erreur persiste sur Windows (PowerShell) :**
+   Il se peut que le terminal garde en mémoire une ancienne clé. Pour forcer la nouvelle clé, exécutez ces commandes :
+   ```powershell
+   # 1. Fermez d'abord l'application en cours (Ctrl + C)
+   
+   # 2. Forcez la variable d'environnement avec votre NOUVELLE clé
+   $env:GROQ_API_KEY="gsk_votre_nouvelle_cle_ici"
+   
+   # 3. Relancez l'application
+   streamlit run app.py
+   ```
+   *Alternative* : Ouvrez simplement un tout nouveau terminal, réactivez l'environnement (`.\.venv\Scripts\activate`) et relancez `app.py`.
